@@ -364,6 +364,19 @@ public partial class CommonHelper
         return dictionary;
     }
 
+    public static string GenerateCamelCaseString(string input) {
+        if (string.IsNullOrWhiteSpace(input))
+            return string.Empty;
+
+        TextInfo textInfo = CultureInfo.InvariantCulture.TextInfo;
+
+        // Convert to TitleCase and remove spaces
+        string titleCase = textInfo.ToTitleCase(input.ToLower()).Replace(" ", "");
+
+        // Lowercase the first letter
+        return char.ToUpperInvariant(titleCase[0]) + titleCase.Substring(1);
+    }
+
     #endregion
 
     #region Properties

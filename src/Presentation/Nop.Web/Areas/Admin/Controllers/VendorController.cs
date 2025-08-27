@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
+using Nop.Core;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Common;
 using Nop.Core.Domain.Forums;
@@ -294,7 +295,11 @@ public partial class VendorController : BaseAdminController
         if (ModelState.IsValid)
         {
             var vendor = model.ToEntity<Vendor>();
+            vendor.ProjectName = $"V{CommonHelper.GenerateCamelCaseString(vendor.Name)}";
+            vendor.SiteHttpPort = _vendorService.GetHttpPort();
+            vendor.SiteHttpsPort = _vendorService.GetHttpsPort();
             await _vendorService.InsertVendorAsync(vendor);
+            await _vendorService.SendProjectNameToRabbitMQ(vendor);
 
             //activity log
             await _customerActivityService.InsertActivityAsync("AddNewVendor",

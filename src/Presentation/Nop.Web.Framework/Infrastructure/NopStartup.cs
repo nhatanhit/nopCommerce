@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Core.Configuration;
@@ -40,6 +41,10 @@ using Nop.Services.Payments;
 using Nop.Services.Plugins;
 using Nop.Services.Plugins.Marketplace;
 using Nop.Services.Polls;
+using Nop.Services.RabbitMQ;
+using Nop.Services.RabbitMQ.Consumers;
+using Nop.Services.RabbitMQ.Interfaces;
+using Nop.Services.RabbitMQ.Modules;
 using Nop.Services.ScheduleTasks;
 using Nop.Services.Security;
 using Nop.Services.Seo;
@@ -51,6 +56,8 @@ using Nop.Services.Tax;
 using Nop.Services.Themes;
 using Nop.Services.Topics;
 using Nop.Services.Vendors;
+using Nop.Services.VendorSiteGenerator.Interfaces;
+using Nop.Services.VendorSiteGenerator.Services;
 using Nop.Web.Framework.Factories;
 using Nop.Web.Framework.Menu;
 using Nop.Web.Framework.Mvc.Routing;
@@ -297,6 +304,9 @@ public partial class NopStartup : INopStartup
         services.AddSingleton<ITaskScheduler, TaskScheduler>();
         services.AddTransient<IScheduleTaskRunner, ScheduleTaskRunner>();
 
+        //Rabbit MQ DI
+        //services.AddSingleton(typeof(IRabbitMqPublisherFactory<>), typeof(RabbitMqPublisherFactory<>));
+        //services.AddSingleton<StorePublisher>();
         //event consumers
         var consumers = typeFinder.FindClassesOfType(typeof(IConsumer<>)).ToList();
         foreach (var consumer in consumers)
@@ -310,6 +320,17 @@ public partial class NopStartup : INopStartup
         //admin menu
         services.AddScoped<IAdminMenu, AdminMenu>();
 
+        //rabbit mq
+        services.AddSingleton<IChannelDeclarationService, ChannelDeclarationService>();
+        services.AddSingleton<IMessageConsumer<StoreConsumer>, StoreConsumer>();
+        services.AddSingleton<IWorkerModule, StoreWorkerModule>();
+        services.AddHostedService<ChannelDeclarationHostedService>();
+        services.AddSingleton<IMessageProducer, MessageProducer>();
+
+        //Image Container
+        services.AddSingleton<IDockerService, DockerService>();
+        services.AddSingleton<ITemplateBuildService, TemplateBuildService>();
+        
         //register the Lazy resolver for .Net IoC
         var useAutofac = appSettings.Get<CommonConfig>().UseAutofac;
         if (!useAutofac)

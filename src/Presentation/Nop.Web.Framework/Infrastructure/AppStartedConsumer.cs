@@ -1,10 +1,12 @@
 ﻿using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
 using Nop.Core.Events;
 using Nop.Data;
 using Nop.Data.Migrations;
 using Nop.Services.Events;
 using Nop.Services.Logging;
 using Nop.Services.Plugins;
+using Nop.Services.RabbitMQ.Interfaces;
 using Nop.Services.ScheduleTasks;
 using Nop.Services.Security;
 using Nop.Web.Framework.Infrastructure.Extensions;
@@ -23,7 +25,9 @@ public partial class AppStartedConsumer : IConsumer<AppStartedEvent>
     protected readonly IPermissionService _permissionService;
     protected readonly IPluginService _pluginService;
     protected readonly ITaskScheduler _taskScheduler;
-
+    protected readonly IChannelDeclarationService _channelDeclarationService;
+    protected  IServiceCollection _serviceCollection;
+    //protected  StorePublisher _storePublisher;
     #endregion
 
     #region Ctor
@@ -32,13 +36,17 @@ public partial class AppStartedConsumer : IConsumer<AppStartedEvent>
         IMigrationManager migrationManager,
         IPermissionService permissionService,
         IPluginService pluginService,
-        ITaskScheduler taskScheduler)
+        ITaskScheduler taskScheduler,
+        IServiceCollection serviceCollection,
+        IChannelDeclarationService channelDeclarationService)
     {
         _logger = logger;
         _migrationManager = migrationManager;
         _permissionService = permissionService;
         _pluginService = pluginService;
         _taskScheduler = taskScheduler;
+        _serviceCollection =serviceCollection;
+        _channelDeclarationService = channelDeclarationService;
     }
 
     #endregion
@@ -74,6 +82,9 @@ public partial class AppStartedConsumer : IConsumer<AppStartedEvent>
         //run scheduler
         await _taskScheduler.InitializeAsync();
         await _taskScheduler.StartSchedulerAsync();
+
+        
+        
     }
 
     #endregion

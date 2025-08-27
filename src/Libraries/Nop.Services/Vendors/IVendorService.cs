@@ -125,4 +125,10 @@ public partial interface IVendorService
     /// <param name="vendorNote">Vendor note</param>
     /// <returns>Formatted text</returns>
     string FormatVendorNoteText(VendorNote vendorNote);
+
+    Task SendProjectNameToRabbitMQ(Vendor vendor);
+
+    public int GetHttpPort();
+
+    public int GetHttpsPort();
 }

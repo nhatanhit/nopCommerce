@@ -108,4 +108,10 @@ public partial class Vendor : BaseEntity, ILocalizedEntity, ISlugSupported, ISof
     /// Gets or sets the customer identifier
     /// </summary>
     public int? PmCustomerId { get; set; }
+
+    public string ProjectName { get; set; }
+
+    public int? SiteHttpPort { get; set; }
+
+    public int? SiteHttpsPort { get; set; }
 }

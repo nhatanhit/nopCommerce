@@ -1,9 +1,12 @@
 ﻿using Nop.Core;
+using Nop.Core.Configuration;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Vendors;
 using Nop.Data;
 using Nop.Services.Html;
+using Nop.Services.RabbitMQ.Interfaces;
+using Nop.Services.RabbitMQ.MessageModel;
 
 namespace Nop.Services.Vendors;
 
@@ -19,7 +22,8 @@ public partial class VendorService : IVendorService
     protected readonly IRepository<Product> _productRepository;
     protected readonly IRepository<Vendor> _vendorRepository;
     protected readonly IRepository<VendorNote> _vendorNoteRepository;
-
+    protected readonly IMessageProducer _messageProducer;
+    protected readonly AppSettings _appSettings;
     #endregion
 
     #region Ctor
@@ -28,13 +32,17 @@ public partial class VendorService : IVendorService
         IRepository<Customer> customerRepository,
         IRepository<Product> productRepository,
         IRepository<Vendor> vendorRepository,
-        IRepository<VendorNote> vendorNoteRepository)
+        IRepository<VendorNote> vendorNoteRepository,
+        IMessageProducer messageProducer,
+        AppSettings appSettings)
     {
         _htmlFormatter = htmlFormatter;
         _customerRepository = customerRepository;
         _productRepository = productRepository;
         _vendorRepository = vendorRepository;
         _vendorNoteRepository = vendorNoteRepository;
+        _messageProducer = messageProducer;
+        _appSettings = appSettings;
     }
 
     #endregion
@@ -68,9 +76,9 @@ public partial class VendorService : IVendorService
             return null;
 
         return await (from v in _vendorRepository.Table
-            join p in _productRepository.Table on v.Id equals p.VendorId
-            where p.Id == productId
-            select v).FirstOrDefaultAsync();
+                      join p in _productRepository.Table on v.Id equals p.VendorId
+                      where p.Id == productId
+                      select v).FirstOrDefaultAsync();
     }
 
     /// <summary>
@@ -86,9 +94,9 @@ public partial class VendorService : IVendorService
         ArgumentNullException.ThrowIfNull(productIds);
 
         return await (from v in _vendorRepository.Table
-            join p in _productRepository.Table on v.Id equals p.VendorId
-            where productIds.Contains(p.Id) && !v.Deleted && v.Active
-            select v).Distinct().ToListAsync();
+                      join p in _productRepository.Table on v.Id equals p.VendorId
+                      where productIds.Contains(p.Id) && !v.Deleted && v.Active
+                      select v).Distinct().ToListAsync();
     }
 
     /// <summary>
@@ -104,9 +112,9 @@ public partial class VendorService : IVendorService
         ArgumentNullException.ThrowIfNull(customerIds);
 
         return await (from v in _vendorRepository.Table
-            join c in _customerRepository.Table on v.Id equals c.VendorId
-            where customerIds.Contains(c.Id) && !v.Deleted && v.Active
-            select v).Distinct().ToListAsync();
+                      join c in _customerRepository.Table on v.Id equals c.VendorId
+                      where customerIds.Contains(c.Id) && !v.Deleted && v.Active
+                      select v).Distinct().ToListAsync();
     }
 
     /// <summary>
@@ -244,5 +252,45 @@ public partial class VendorService : IVendorService
         return text;
     }
 
-    #endregion
+    public async Task SendProjectNameToRabbitMQ(Vendor vendor)
+    {
+        await _messageProducer.PublishMessageAsync("store", new Store()
+        {
+            Name = vendor.Name,
+            DockerImageName = vendor.ProjectName,
+            HttpPort = vendor.SiteHttpPort,
+            HttpsPort = vendor.SiteHttpsPort
+        });
+
+    }
+
+    public int GetHttpPort()
+    {
+        var storeInitSetting = _appSettings.Get<StoreInitSettings>();
+        var fromHttpPort = storeInitSetting.HttpFromPort;
+        var toHttpPort = storeInitSetting.HttpToPort;
+
+        var usedPorts = _vendorRepository.Table
+            .Where(x => x.Deleted == false && x.Active == true && x.SiteHttpPort >= fromHttpPort && x.SiteHttpPort <= toHttpPort)
+            .Select(x => x.SiteHttpPort).ToHashSet();
+
+        var availableHttpPort = Enumerable.Range(fromHttpPort, toHttpPort - fromHttpPort + 1).FirstOrDefault(n => !usedPorts.Contains(n));
+        return availableHttpPort;
+    }
+
+    public int GetHttpsPort()
+    {
+        var storeInitSetting = _appSettings.Get<StoreInitSettings>();
+        var fromHttpsPort = storeInitSetting.HttpsFromPort;
+        var toHttpsPort = storeInitSetting.HttpsToPort;
+
+        var usedPorts = _vendorRepository.Table
+            .Where(x => x.Deleted == false && x.Active == true && x.SiteHttpsPort >= fromHttpsPort && x.SiteHttpsPort <= toHttpsPort)
+            .Select(x => x.SiteHttpsPort).ToHashSet();
+
+        var availableHttpsPort = Enumerable.Range(fromHttpsPort, toHttpsPort - fromHttpsPort + 1).FirstOrDefault(n => !usedPorts.Contains(n));
+        return availableHttpsPort;
+    }
 }
+
+    #endregion
