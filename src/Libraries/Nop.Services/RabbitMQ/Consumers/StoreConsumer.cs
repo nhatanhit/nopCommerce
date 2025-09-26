@@ -15,7 +15,10 @@ using RabbitMQ.Client.Events;
 namespace Nop.Services.RabbitMQ.Consumers;
 public class StoreConsumer : IMessageConsumer<StoreConsumer>
 {
-    public string QueueName => "store";
+    public string QueueName => "store.init";
+
+    public string ExchangeName => "store.exchange";
+
     private readonly IChannelDeclarationService _channelDeclarationService;
     private readonly  ITemplateBuildService _templateBuildService;
     private AsyncEventingBasicConsumer _consumer;

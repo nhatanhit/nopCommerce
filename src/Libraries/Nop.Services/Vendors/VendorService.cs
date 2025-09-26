@@ -2,6 +2,7 @@
 using Nop.Core.Configuration;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Customers;
+using Nop.Core.Domain.Stores;
 using Nop.Core.Domain.Vendors;
 using Nop.Data;
 using Nop.Services.Html;
@@ -254,7 +255,7 @@ public partial class VendorService : IVendorService
 
     public async Task SendProjectNameToRabbitMQ(Vendor vendor)
     {
-        await _messageProducer.PublishMessageAsync("store", new Store()
+        await _messageProducer.PublishMessageAsync("store.exchange", "store.init", new RabbitMQ.MessageModel.Store()
         {
             Name = vendor.Name,
             DockerImageName = vendor.ProjectName,

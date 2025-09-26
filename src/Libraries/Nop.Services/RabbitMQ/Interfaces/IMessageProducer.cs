@@ -7,5 +7,5 @@ using System.Threading.Tasks;
 namespace Nop.Services.RabbitMQ.Interfaces;
 public interface IMessageProducer
 {
-    public Task PublishMessageAsync<T>(string queueName, T @object) where T : class;
+    public Task PublishMessageAsync<T>( string exchangeName ,string queueName, T @object) where T : class;
 }

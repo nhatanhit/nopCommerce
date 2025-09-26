@@ -46,9 +46,13 @@ public sealed class TemplateBuildService : ITemplateBuildService
             _log.LogInformation("Output folder {OutputDir} exists, deleting...", outputDir);
             System.IO.Directory.Delete(outputDir, recursive: true);
         }
+        else
+        {
+            System.IO.Directory.CreateDirectory(outputDir);
+        }
 
-        // 1) dotnet new
-        var newArgs = $"new {templateName} -D {hostName} --httpPort {httpPort.ToString()} --httpsPort {httpsPort.ToString()} --storename {Quote(siteTitle)}  -o {newProjectName}";
+            // 1) dotnet new
+            var newArgs = $"new {templateName} -D {hostName} --httpPort {httpPort.ToString()} --httpsPort {httpsPort.ToString()} --storename {Quote(siteTitle)}  -o {newProjectName}";
         _log.LogInformation("Running: dotnet {Args} (wd={WD})", newArgs, rootStoreProjects);
         var newRes = await CommandRunner.RunAsync(
             fileName: "dotnet",
@@ -64,34 +68,43 @@ public sealed class TemplateBuildService : ITemplateBuildService
 
         _log.LogInformation("dotnet new output:\n{Out}", newRes.StdOut);
 
+        string dockerTag = $"{newProjectName.ToLower()}:stores";
+
+        await _messageProducer.PublishMessageAsync("store.exchange", "store.build.start", new StoreBuildInfo { 
+            RootStoreProject = rootStoreProjects,
+            DockerTag = dockerTag,
+            DockerFileWorkingDirectory = outputDir,
+            ProjectName = newProjectName
+        });
+
         // 2) docker build
         // Expect a Dockerfile in outputDir (template should include it). If not, adjust context accordingly.
-        string dockerTag = $"{newProjectName.ToLower()}:stores";
-        var dockerArgs = $"build -t {Quote(dockerTag)} ./{newProjectName}";
-        _log.LogInformation("Running: docker {Args} (wd={WD})", dockerArgs, outputDir);
-        var buildRes = await CommandRunner.RunAsync(
-            fileName: "docker",
-            arguments: dockerArgs,
-            workingDir: outputDir,
-            timeout: TimeSpan.FromMinutes(15),
-            ct: ct);
+        
+        //var dockerArgs = $"build -t {Quote(dockerTag)} ./{newProjectName}";
+        //_log.LogInformation("Running: docker {Args} (wd={WD})", dockerArgs, outputDir);
+        //var buildRes = await CommandRunner.RunAsync(
+        //    fileName: "docker",
+        //    arguments: dockerArgs,
+        //    workingDir: outputDir,
+        //    timeout: TimeSpan.FromMinutes(15),
+        //    ct: ct);
 
-        _log.LogInformation("docker build output:\n{Out}", buildRes.StdErr);
+        //_log.LogInformation("docker build output:\n{Out}", buildRes.StdErr);
 
-        //3 check whether the docker image is created
-        var dockerImage = await _dockerService.GetDockerImageByTagAsync(dockerTag);
-        if (dockerImage != null)
-        {
-            await _messageProducer.PublishMessageAsync("notification", new StoreNotification()
-            {
-                TagName = dockerTag
-            });
-            _log.LogInformation("docker image {Out} build success", dockerTag); 
-        }
-        else
-        {
-            _log.LogInformation("docker build failed");
-        }
+        ////3 check whether the docker image is created
+        //var dockerImage = await _dockerService.GetDockerImageByTagAsync(dockerTag);
+        //if (dockerImage != null)
+        //{
+        //    await _messageProducer.PublishMessageAsync("notification", new StoreNotification()
+        //    {
+        //        TagName = dockerTag
+        //    });
+        //    _log.LogInformation("docker image {Out} build success", dockerTag); 
+        //}
+        //else
+        //{
+        //    _log.LogInformation("docker build failed");
+        //}
     }
 
     private static string Quote(string s) =>

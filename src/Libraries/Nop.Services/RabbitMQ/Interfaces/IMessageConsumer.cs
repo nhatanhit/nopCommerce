@@ -9,7 +9,7 @@ namespace Nop.Services.RabbitMQ.Interfaces;
 public interface IMessageConsumer<T>
 {
     public string QueueName { get; }
-    
+    public string ExchangeName { get; }
     public Task StartListening(CancellationToken cancellationToken = default);
 
     public Task StopListening(CancellationToken cancellationToken = default);

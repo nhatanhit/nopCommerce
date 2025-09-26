@@ -11,6 +11,9 @@ public interface IChannelDeclarationService
     public Task SetupRabbitMQConnection(CancellationToken cancellationToken);
     public Task CreateQueueAsync(string queueName);
 
+    public Task CreateExchangeAsync(string exchangeName, string exchangeType);
+
+    public Task BindingQueueWithExchange(string queueName, string exchange, string routingKey);
     public Task StopRabbitMQConnection(CancellationToken cancellationToken);
 
     public IChannel GetChannel();

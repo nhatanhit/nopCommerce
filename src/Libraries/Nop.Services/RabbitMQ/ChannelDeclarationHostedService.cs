@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Nop.Services.RabbitMQ.Interfaces;
+using RabbitMQ.Client;
 
 namespace Nop.Services.RabbitMQ;
 public class ChannelDeclarationHostedService : IHostedService
@@ -20,8 +21,21 @@ public class ChannelDeclarationHostedService : IHostedService
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         await _channelDeclarationService.SetupRabbitMQConnection(cancellationToken);
-        await _channelDeclarationService.CreateQueueAsync("store");
+        await _channelDeclarationService.CreateExchangeAsync("store.exchange", ExchangeType.Topic);
+
+        await _channelDeclarationService.CreateQueueAsync("store.init");
+        await _channelDeclarationService.CreateQueueAsync("store.build.start");
+        await _channelDeclarationService.CreateQueueAsync("store.build.end");
+        //binding 
+        await _channelDeclarationService.BindingQueueWithExchange("store.init", "store.exchange", "store.init");
+        await _channelDeclarationService.BindingQueueWithExchange("store.build.start", "store.exchange", "store.build.start");
+        await _channelDeclarationService.BindingQueueWithExchange("store.build.end", "store.exchange", "store.build.end");
+
         await _channelDeclarationService.CreateQueueAsync("notification");
+        
+
+        //binding with exchange (topic)
+        
         //register consumers
         _workerModules?.ForEach(async (module) =>
         {

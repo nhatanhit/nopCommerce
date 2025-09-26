@@ -26,12 +26,12 @@ public class StoreWorkerModule : IWorkerModule
 
     public void Dispose()
     {
-        throw new NotImplementedException();
+        _storeConsumer.StopListening(cancellationToken: default).ConfigureAwait(true);
     }
 
     public async Task InitializeAsnyc(CancellationToken cancellationToken)
     {
-         _storeConsumer.Initialize();
+        _storeConsumer.Initialize();
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)

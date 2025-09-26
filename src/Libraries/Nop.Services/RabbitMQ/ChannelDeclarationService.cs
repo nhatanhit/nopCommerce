@@ -16,10 +16,20 @@ public class ChannelDeclarationService : IChannelDeclarationService
         _serviceScopeFactory = serviceScopeFactory;
     }
 
+    public async Task BindingQueueWithExchange(string queueName, string exchange, string routingKey)
+    {
+        await _channel.QueueBindAsync(queueName, exchange, routingKey);
+    }
+
+    public async Task CreateExchangeAsync(string exchangeName, string exchangeType)
+    {
+        await _channel.ExchangeDeclareAsync(exchangeName, exchangeType);
+    }
+
     public async Task CreateQueueAsync(string queueName)
     {
-         await _channel.QueueDeclareAsync(queue: queueName, durable: false, exclusive: false, autoDelete: false,arguments: null);
-    }
+         await _channel.QueueDeclareAsync(queue: queueName, durable: true, exclusive: false, autoDelete: false,arguments: null);
+    } 
 
     public IChannel GetChannel()
     {

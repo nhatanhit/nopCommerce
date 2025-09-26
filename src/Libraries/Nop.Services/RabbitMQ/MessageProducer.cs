@@ -16,7 +16,7 @@ public class MessageProducer : IMessageProducer
     public MessageProducer(IServiceScopeFactory serviceScopeFactory) { 
         _serviceScopeFactory = serviceScopeFactory;
     }
-    public async Task PublishMessageAsync<T>(string queueName, T messageObject) where T : class
+    public async Task PublishMessageAsync<T>(string exchange , string queueName, T messageObject) where T : class
     {
         using var scope = _serviceScopeFactory.CreateScope();
         var channelDeclarationService = scope.ServiceProvider.GetService<IChannelDeclarationService>();
@@ -24,7 +24,7 @@ public class MessageProducer : IMessageProducer
         var serializedString = JsonConvert.SerializeObject(messageObject);
 
         var body = Encoding.UTF8.GetBytes(serializedString);
-        await channel.BasicPublishAsync(exchange: string.Empty, routingKey: queueName, body: body);
+        await channel.BasicPublishAsync(exchange: exchange, routingKey: queueName, body: body);
         
     }
 }
